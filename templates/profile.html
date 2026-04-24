@@ -1,0 +1,117 @@
+{% extends "base.html" %} {% block title %}Profile{% endblock %} {% block
+content %}
+<div style="max-width: 700px; margin: 0 auto">
+  <div class="card mb-2 text-center" style="padding: 2.5rem 2rem">
+    <div class="profile-avatar">{{ current_user.username[0]|upper }}</div>
+    <h2 style="font-weight: 800; margin-top: 1rem">
+      {{ current_user.username }}
+    </h2>
+    <p style="color: var(--text-secondary); font-weight: 600">
+      Member since {{ current_user.created_at[:10] }}
+    </p>
+    <div class="flex gap-2 mt-2" style="justify-content: center">
+      <span class="badge badge-primary" style="font-size: 0.9rem"
+        >Level {{ current_user.level }}</span
+      >
+      <span class="badge badge-accent" style="font-size: 0.9rem"
+        >{{ current_user.xp }} XP</span
+      >
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats-grid mb-2">
+    <div class="stat-card">
+      <div class="stat-icon">🔥</div>
+      <div class="stat-value">{{ stats.streak_days }}</div>
+      <div class="stat-label">Day Streak</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">📚</div>
+      <div class="stat-value">{{ stats.vocab_learned }}</div>
+      <div class="stat-label">Words Learned</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">✅</div>
+      <div class="stat-value">{{ stats.quizzes_completed }}</div>
+      <div class="stat-label">Quizzes Done</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">✍️</div>
+      <div class="stat-value">{{ stats.writing_submissions }}</div>
+      <div class="stat-label">Writings</div>
+    </div>
+  </div>
+
+  <!-- Level Progress -->
+  <div class="card mb-2">
+    <h3 style="font-weight: 800; margin-bottom: 1rem">🎯 Level Progress</h3>
+    {% set levels = ['A1', 'A2', 'B1', 'B2', 'C1'] %} {% set current_idx =
+    levels.index(current_user.level) if current_user.level in levels else 0 %}
+    <div class="level-track">
+      {% for lvl in levels %} {% set idx = loop.index0 %}
+      <div
+        class="level-node {% if idx < current_idx %}done{% elif idx == current_idx %}current{% endif %}"
+      >
+        <div class="level-dot">
+          {% if idx < current_idx %}✓{% elif idx == current_idx %}★{% endif %}
+        </div>
+        <div class="level-label">{{ lvl }}</div>
+      </div>
+      {% if not loop.last %}
+      <div
+        class="level-connector {% if idx < current_idx %}active{% endif %}"
+      ></div>
+      {% endif %} {% endfor %}
+    </div>
+  </div>
+
+  <!-- Badges -->
+  <div class="card mb-2">
+    <div class="flex items-center justify-between mb-2">
+      <h3 style="font-weight: 800">🏅 Badges ({{ earned_badges|length }})</h3>
+      <a href="{{ url_for('badges') }}" class="btn btn-ghost btn-sm"
+        >View All →</a
+      >
+    </div>
+    {% if earned_badges %}
+    <div class="badges-inline">
+      {% for b in earned_badges[:6] %}
+      <div class="badge-inline" title="{{ b.name }}">{{ b.icon }}</div>
+      {% endfor %} {% if earned_badges|length > 6 %}
+      <div class="badge-inline" style="font-size: 1rem">
+        +{{ earned_badges|length - 6 }}
+      </div>
+      {% endif %}
+    </div>
+    {% else %}
+    <p style="color: var(--text-secondary); text-align: center">
+      Keep learning to earn badges!
+    </p>
+    {% endif %}
+  </div>
+
+  <!-- Quick Stats -->
+  <div class="card mb-2">
+    <h3 style="font-weight: 800; margin-bottom: 1rem">📈 Performance</h3>
+    <div class="perf-grid">
+      <div class="perf-item">
+        <span class="perf-label">Quiz Average</span>
+        <span class="perf-value">{{ stats.quiz_avg|default(0) }}%</span>
+      </div>
+      <div class="perf-item">
+        <span class="perf-label">Writing Average</span>
+        <span class="perf-value">{{ stats.writing_avg|default(0) }}/100</span>
+      </div>
+      <div class="perf-item">
+        <span class="perf-label">Grammar Lessons Done</span>
+        <span class="perf-value">{{ stats.grammar_done|default(0) }}</span>
+      </div>
+      <div class="perf-item">
+        <span class="perf-label">Speaking Scenarios</span>
+        <span class="perf-value">{{ stats.speaking_done|default(0) }}</span>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

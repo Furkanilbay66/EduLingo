@@ -1,0 +1,155 @@
+{% extends "base.html" %} {% block title %}Placement Test{% endblock %} {% block
+content %}
+<div style="max-width: 700px; margin: 0 auto">
+  <div class="text-center mb-3">
+    <h1 class="section-title">📋 Placement Test</h1>
+    <p class="section-subtitle">
+      Answer these questions so we can find your English level. Take your time!
+    </p>
+  </div>
+
+  <div class="placement-progress">
+    <div class="progress-bar">
+      <div class="progress-fill" id="placementProgress" style="width: 0%"></div>
+    </div>
+    <span class="progress-text" id="progressText"
+      >0 / {{ questions|length }}</span
+    >
+  </div>
+
+  <form id="placementForm">
+    {% for q in questions %}
+    <div
+      class="question-card placement-question"
+      data-index="{{ loop.index0 }}"
+      style="{% if loop.index0 > 0 %}display:none{% endif %}"
+    >
+      <div class="question-number">
+        Question {{ loop.index }} of {{ questions|length }}
+      </div>
+      <div class="question-text">{{ q.question }}</div>
+      <div class="options-container">
+        {% for opt in q.options|tojson|fromjson if q.options %}
+        <button
+          type="button"
+          class="quiz-option placement-option"
+          data-question="{{ q.id }}"
+          data-value="{{ opt }}"
+        >
+          {{ opt }}
+        </button>
+        {% endfor %}
+      </div>
+    </div>
+    {% endfor %}
+  </form>
+
+  <!-- Results Modal -->
+  <div class="modal-overlay" id="resultsModal">
+    <div class="modal">
+      <div class="text-center">
+        <div
+          style="font-size: 4rem; margin-bottom: 1rem"
+          class="animate-bounce"
+        >
+          🎉
+        </div>
+        <h2 class="modal-title">Your Level</h2>
+        <div
+          class="results-circle great"
+          id="resultCircle"
+          style="width: 150px; height: 150px; font-size: 2.5rem"
+        >
+          <div id="resultLevel">--</div>
+        </div>
+        <p class="mt-2" style="font-size: 1.1rem; font-weight: 700">
+          You scored <span id="resultScore">0</span> out of
+          <span id="resultTotal">0</span>
+        </p>
+        <p class="mt-1" style="color: var(--text-secondary)">
+          Your lessons will be tailored to your level.
+        </p>
+        <a
+          href="{{ url_for('dashboard') }}"
+          class="btn btn-primary btn-lg mt-3"
+        >
+          Start Learning! 🚀
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %} {% block scripts %}
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const questions = document.querySelectorAll(".placement-question");
+    const totalQuestions = questions.length;
+    let currentQ = 0;
+    const answers = {};
+
+    function updateProgress() {
+      const pct = (currentQ / totalQuestions) * 100;
+      document.getElementById("placementProgress").style.width = pct + "%";
+      document.getElementById("progressText").textContent =
+        currentQ + " / " + totalQuestions;
+    }
+
+    document.querySelectorAll(".placement-option").forEach((btn) => {
+      btn.addEventListener("click", function () {
+        const qId = this.dataset.question;
+        const value = this.dataset.value;
+
+        // Mark selected
+        this.parentElement
+          .querySelectorAll(".placement-option")
+          .forEach((b) => b.classList.remove("selected"));
+        this.classList.add("selected");
+        answers[qId] = value;
+
+        // Move to next after short delay
+        setTimeout(() => {
+          questions[currentQ].style.display = "none";
+          currentQ++;
+          updateProgress();
+
+          if (currentQ < totalQuestions) {
+            questions[currentQ].style.display = "block";
+          } else {
+            submitPlacement();
+          }
+        }, 400);
+      });
+    });
+
+    function submitPlacement() {
+      const formData = new FormData();
+      for (const [qId, value] of Object.entries(answers)) {
+        formData.append("q_" + qId, value);
+      }
+
+      fetch('{{ url_for("submit_placement") }}', {
+        method: "POST",
+        body: formData,
+      })
+        .then((r) => r.json())
+        .then((data) => {
+          document.getElementById("resultLevel").textContent = data.level;
+          document.getElementById("resultScore").textContent = data.score;
+          document.getElementById("resultTotal").textContent = data.total;
+
+          const circle = document.getElementById("resultCircle");
+          if (data.percentage >= 70) circle.className = "results-circle great";
+          else if (data.percentage >= 40)
+            circle.className = "results-circle good";
+          else circle.className = "results-circle poor";
+
+          circle.style.width = "150px";
+          circle.style.height = "150px";
+          circle.style.fontSize = "2.5rem";
+
+          document.getElementById("resultsModal").classList.add("show");
+        });
+    }
+  });
+</script>
+{% endblock %}

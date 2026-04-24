@@ -1,0 +1,138 @@
+<!doctype html>
+<html
+  lang="en"
+  data-theme="{{ 'dark' if current_user and current_user.dark_mode else 'light' }}"
+>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{% block title %}EduLingo{% endblock %} - Learn English</title>
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='css/style.css') }}"
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    {% block head %}{% endblock %}
+  </head>
+  <body>
+    {% if current_user %}
+    <nav class="navbar">
+      <div class="nav-container">
+        <a href="{{ url_for('dashboard') }}" class="nav-brand">
+          <span class="brand-icon">🦉</span>
+          <span class="brand-text">EduLingo</span>
+        </a>
+        <button class="nav-toggle" id="navToggle" aria-label="Toggle menu">
+          <span></span><span></span><span></span>
+        </button>
+        <div class="nav-links" id="navLinks">
+          <a
+            href="{{ url_for('dashboard') }}"
+            class="nav-link {% if request.endpoint == 'dashboard' %}active{% endif %}"
+          >
+            <span class="nav-icon">🏠</span> Dashboard
+          </a>
+          <a
+            href="{{ url_for('vocabulary') }}"
+            class="nav-link {% if request.endpoint == 'vocabulary' %}active{% endif %}"
+          >
+            <span class="nav-icon">📚</span> Vocabulary
+          </a>
+          <a
+            href="{{ url_for('grammar') }}"
+            class="nav-link {% if request.endpoint in ('grammar', 'grammar_lesson') %}active{% endif %}"
+          >
+            <span class="nav-icon">📖</span> Grammar
+          </a>
+          <a
+            href="{{ url_for('quiz') }}"
+            class="nav-link {% if request.endpoint == 'quiz' %}active{% endif %}"
+          >
+            <span class="nav-icon">📝</span> Quiz
+          </a>
+          <a
+            href="{{ url_for('writing') }}"
+            class="nav-link {% if request.endpoint == 'writing' %}active{% endif %}"
+          >
+            <span class="nav-icon">✍️</span> Writing
+          </a>
+          <a
+            href="{{ url_for('speaking') }}"
+            class="nav-link {% if request.endpoint in ('speaking', 'speaking_scenario') %}active{% endif %}"
+          >
+            <span class="nav-icon">🗣️</span> Speaking
+          </a>
+          <a
+            href="{{ url_for('leaderboard') }}"
+            class="nav-link {% if request.endpoint == 'leaderboard' %}active{% endif %}"
+          >
+            <span class="nav-icon">🏆</span> Leaderboard
+          </a>
+        </div>
+        <div class="nav-user">
+          <div class="nav-stats">
+            <span class="stat-badge xp-badge">⚡ {{ current_user.xp }} XP</span>
+            <span class="stat-badge streak-badge"
+              >🔥 {{ current_user.streak }}</span
+            >
+            <span class="stat-badge level-badge">{{ current_user.level }}</span>
+          </div>
+          <div class="nav-dropdown">
+            <button class="nav-user-btn" id="userDropdown">
+              <div class="avatar">{{ current_user.username[0]|upper }}</div>
+            </button>
+            <div class="dropdown-menu" id="dropdownMenu">
+              <a href="{{ url_for('profile') }}" class="dropdown-item"
+                >👤 Profile</a
+              >
+              <a href="{{ url_for('badges') }}" class="dropdown-item"
+                >🏅 Badges</a
+              >
+              <button class="dropdown-item" onclick="toggleDarkMode()">
+                🌙 Dark Mode
+              </button>
+              <hr />
+              <a
+                href="{{ url_for('logout') }}"
+                class="dropdown-item text-danger"
+                >🚪 Logout</a
+              >
+            </div>
+          </div>
+        </div>
+      </div>
+    </nav>
+    {% endif %}
+
+    <main class="main-content">
+      {% with messages = get_flashed_messages(with_categories=true) %} {% if
+      messages %}
+      <div class="flash-container">
+        {% for category, message in messages %}
+        <div class="flash flash-{{ category }}">
+          <span>{{ message }}</span>
+          <button class="flash-close" onclick="this.parentElement.remove()">
+            ×
+          </button>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %} {% endwith %} {% block content %}{% endblock %}
+    </main>
+
+    {% if current_user %}
+    <footer class="footer">
+      <div class="footer-content">
+        <p>🦉 EduLingo — Learn English, Level Up Your Life</p>
+      </div>
+    </footer>
+    {% endif %}
+
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+    {% block scripts %}{% endblock %}
+  </body>
+</html>

@@ -1,0 +1,92 @@
+{% extends "base.html" %} {% block title %}Leaderboard{% endblock %} {% block
+content %}
+<div style="max-width: 700px; margin: 0 auto">
+  <div class="section-header">
+    <div>
+      <h1 class="section-title">🏆 Leaderboard</h1>
+      <p class="section-subtitle">Top learners ranked by XP</p>
+    </div>
+  </div>
+
+  {% if leaderboard %}
+  <!-- Top 3 Podium -->
+  {% if leaderboard|length >= 3 %}
+  <div class="podium mb-3">
+    <!-- 2nd Place -->
+    <div class="podium-item silver">
+      <div class="podium-avatar silver">
+        {{ leaderboard[1].username[0]|upper }}
+      </div>
+      <div class="podium-name">{{ leaderboard[1].username }}</div>
+      <div class="podium-xp">{{ leaderboard[1].xp }} XP</div>
+      <div class="podium-stand silver">2</div>
+    </div>
+    <!-- 1st Place -->
+    <div class="podium-item gold">
+      <div class="podium-crown">👑</div>
+      <div class="podium-avatar gold">
+        {{ leaderboard[0].username[0]|upper }}
+      </div>
+      <div class="podium-name">{{ leaderboard[0].username }}</div>
+      <div class="podium-xp">{{ leaderboard[0].xp }} XP</div>
+      <div class="podium-stand gold">1</div>
+    </div>
+    <!-- 3rd Place -->
+    <div class="podium-item bronze">
+      <div class="podium-avatar bronze">
+        {{ leaderboard[2].username[0]|upper }}
+      </div>
+      <div class="podium-name">{{ leaderboard[2].username }}</div>
+      <div class="podium-xp">{{ leaderboard[2].xp }} XP</div>
+      <div class="podium-stand bronze">3</div>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Full Table -->
+  <div class="card">
+    <table class="leaderboard-table">
+      <thead>
+        <tr>
+          <th>Rank</th>
+          <th>User</th>
+          <th>Level</th>
+          <th>XP</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for u in leaderboard %}
+        <tr
+          class="{% if current_user and u.id == current_user.id %}highlight{% endif %}"
+        >
+          <td>
+            {% if loop.index == 1 %}🥇 {% elif loop.index == 2 %}🥈 {% elif
+            loop.index == 3 %}🥉 {% else %}{{ loop.index }}{% endif %}
+          </td>
+          <td>
+            <div class="lb-user">
+              <div class="lb-avatar">{{ u.username[0]|upper }}</div>
+              <strong>{{ u.username }}</strong>
+              {% if current_user and u.id == current_user.id %}
+              <span class="badge badge-primary" style="font-size: 0.65rem"
+                >You</span
+              >
+              {% endif %}
+            </div>
+          </td>
+          <td><span class="badge badge-secondary">{{ u.level }}</span></td>
+          <td><strong>{{ u.xp }}</strong></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-state">
+    <div class="empty-state-icon">🏆</div>
+    <h3>No Users Yet</h3>
+    <p>Be the first to earn XP and top the leaderboard!</p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

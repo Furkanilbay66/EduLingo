@@ -1,0 +1,225 @@
+{% extends "base.html" %} {% block title %}Writing Practice{% endblock %} {%
+block content %}
+<div style="max-width: 800px; margin: 0 auto">
+  <div class="section-header">
+    <div>
+      <h1 class="section-title">✍️ Writing Practice</h1>
+      <p class="section-subtitle">
+        Write and get instant feedback — Level {{ current_user.level }}
+      </p>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <button class="tab active" data-tab="write">✏️ Write</button>
+    <button class="tab" data-tab="history">📜 History</button>
+  </div>
+
+  <!-- Write Tab -->
+  <div class="tab-content active" id="tab-write">
+    <!-- Prompt Selection -->
+    <div class="card mb-2">
+      <h3 style="font-weight: 800; margin-bottom: 0.75rem">
+        Choose a Writing Prompt
+      </h3>
+      <div class="grid-2" id="promptGrid">
+        {% for p in prompts %}
+        <div
+          class="card prompt-card"
+          style="cursor: pointer; padding: 1rem"
+          onclick="selectPrompt(this, '{{ p.prompt|e }}', '{{ p.hint|e }}')"
+        >
+          <div style="font-weight: 700; font-size: 0.9rem">{{ p.prompt }}</div>
+          <div
+            style="
+              font-size: 0.8rem;
+              color: var(--text-secondary);
+              margin-top: 0.25rem;
+            "
+          >
+            💡 {{ p.hint }}
+          </div>
+          <span class="badge badge-secondary mt-1">{{ p.category }}</span>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- Writing Area -->
+    <div class="card" id="writingArea" style="display: none">
+      <div class="flex items-center justify-between mb-1">
+        <h3 style="font-weight: 800">Your Writing</h3>
+        <span class="badge badge-accent" id="wordCount">0 words</span>
+      </div>
+      <p
+        id="selectedPrompt"
+        style="
+          color: var(--text-secondary);
+          font-weight: 600;
+          margin-bottom: 1rem;
+        "
+      ></p>
+
+      <textarea
+        class="form-input"
+        id="writingInput"
+        rows="8"
+        placeholder="Start writing here..."
+        oninput="updateWordCount()"
+      ></textarea>
+
+      <div class="flex justify-between mt-2">
+        <button class="btn btn-ghost" onclick="clearWriting()">Clear</button>
+        <button
+          class="btn btn-primary"
+          onclick="submitWriting()"
+          id="submitWritingBtn"
+        >
+          Check My Writing ✨
+        </button>
+      </div>
+    </div>
+
+    <!-- Feedback Area -->
+    <div class="card mt-2" id="feedbackArea" style="display: none">
+      <div class="flex items-center justify-between mb-2">
+        <h3 style="font-weight: 800">📊 Feedback</h3>
+        <div class="writing-score-circle" id="writeScoreCircle">
+          <span id="writeScore">0</span>
+        </div>
+      </div>
+
+      <ul class="feedback-list" id="feedbackList"></ul>
+
+      <div class="text-center mt-2">
+        <p style="font-weight: 700; color: var(--accent)">
+          +<span id="writeXP">0</span> XP earned!
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- History Tab -->
+  <div class="tab-content" id="tab-history">
+    {% if history %} {% for w in history %}
+    <div class="card mb-2">
+      <div class="flex items-center justify-between mb-1">
+        <span
+          style="
+            font-weight: 700;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+          "
+        >
+          {{ w.submitted_at }}
+        </span>
+        <span
+          class="badge {% if w.score >= 70 %}badge-primary{% elif w.score >= 40 %}badge-accent{% else %}badge-danger{% endif %}"
+        >
+          Score: {{ w.score }}
+        </span>
+      </div>
+      <p style="font-weight: 600; margin-bottom: 0.5rem">{{ w.prompt }}</p>
+      <p style="color: var(--text-secondary); font-size: 0.9rem">
+        {{ w.content[:200] }}{% if w.content|length > 200 %}...{% endif %}
+      </p>
+    </div>
+    {% endfor %} {% else %}
+    <div class="empty-state">
+      <div class="empty-state-icon">✍️</div>
+      <h3>No Writing History</h3>
+      <p>Start writing to see your submissions here.</p>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %} {% block scripts %}
+<script>
+  let currentPrompt = "";
+
+  function selectPrompt(el, prompt, hint) {
+    document
+      .querySelectorAll(".prompt-card")
+      .forEach((c) => (c.style.borderColor = ""));
+    el.style.borderColor = "var(--primary)";
+    currentPrompt = prompt;
+    document.getElementById("selectedPrompt").textContent = prompt;
+    document.getElementById("writingArea").style.display = "block";
+    document.getElementById("feedbackArea").style.display = "none";
+    document.getElementById("writingInput").value = "";
+    document.getElementById("writingInput").focus();
+    updateWordCount();
+  }
+
+  function updateWordCount() {
+    const text = document.getElementById("writingInput").value.trim();
+    const count = text ? text.split(/\s+/).length : 0;
+    document.getElementById("wordCount").textContent =
+      count + " word" + (count !== 1 ? "s" : "");
+  }
+
+  function clearWriting() {
+    document.getElementById("writingInput").value = "";
+    document.getElementById("feedbackArea").style.display = "none";
+    updateWordCount();
+  }
+
+  function submitWriting() {
+    const content = document.getElementById("writingInput").value.trim();
+    if (!content) {
+      alert("Please write something first!");
+      return;
+    }
+
+    const btn = document.getElementById("submitWritingBtn");
+    btn.disabled = true;
+    btn.innerHTML = "⏳ Checking...";
+
+    fetch("/writing/check", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ prompt: currentPrompt, content: content }),
+    })
+      .then((r) => r.json())
+      .then((data) => {
+        btn.disabled = false;
+        btn.innerHTML = "Check My Writing ✨";
+
+        if (data.error) {
+          alert(data.error);
+          return;
+        }
+
+        // Show feedback
+        const feedbackList = document.getElementById("feedbackList");
+        feedbackList.innerHTML = "";
+        data.feedback.forEach((fb) => {
+          const li = document.createElement("li");
+          li.className =
+            "feedback-item" +
+            (fb.includes("Great") || fb.includes("good") ? " good" : "");
+          li.textContent = fb;
+          feedbackList.appendChild(li);
+        });
+
+        const scoreCircle = document.getElementById("writeScoreCircle");
+        document.getElementById("writeScore").textContent = data.score;
+        if (data.score >= 70) {
+          scoreCircle.style.background = "var(--primary-light)";
+          scoreCircle.style.color = "var(--primary-dark)";
+        } else if (data.score >= 40) {
+          scoreCircle.style.background = "rgba(255,200,0,0.15)";
+          scoreCircle.style.color = "#b8860b";
+        } else {
+          scoreCircle.style.background = "var(--danger-light)";
+          scoreCircle.style.color = "var(--danger)";
+        }
+
+        document.getElementById("writeXP").textContent = data.xp_earned;
+        document.getElementById("feedbackArea").style.display = "block";
+        showXPPopup(data.xp_earned);
+      });
+  }
+</script>
+{% endblock %}

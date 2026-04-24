@@ -1,0 +1,54 @@
+{% extends "base.html" %} {% block title %}Speaking Practice{% endblock %} {%
+block content %}
+<div class="section-header">
+  <div>
+    <h1 class="section-title">🗣️ Speaking Practice</h1>
+    <p class="section-subtitle">
+      Practice real-world conversations — Level {{ current_user.level }}
+    </p>
+  </div>
+</div>
+
+{% if scenarios %}
+<div class="grid-2">
+  {% for s in scenarios %} {% set is_done = s.id in progress and
+  progress[s.id].completed %}
+  <a
+    href="{{ url_for('speaking_scenario', scenario_id=s.id) }}"
+    class="card"
+    style="text-decoration: none; color: var(--text)"
+  >
+    <div class="card-header">
+      <span class="card-icon">
+        {% if s.category == 'Restaurant' %}🍽️ {% elif s.category == 'Work' %}💼
+        {% elif s.category == 'Shopping' %}🛍️ {% elif s.category == 'Health'
+        %}🏥 {% elif s.category == 'Social' %}👋 {% elif s.category == 'Travel'
+        %}✈️ {% elif s.category == 'Introduction' %}🤝 {% elif s.category ==
+        'Directions' %}🗺️ {% elif s.category == 'Discussion' %}💬 {% elif
+        s.category == 'Debate' %}⚖️ {% elif s.category == 'Academic' %}🎓 {%
+        elif s.category == 'Business' %}📈 {% else %}🗣️{% endif %}
+      </span>
+      <div>
+        <div class="card-title">{{ s.title }}</div>
+        <div class="card-subtitle">{{ s.description }}</div>
+      </div>
+    </div>
+
+    <div class="flex items-center gap-1">
+      <span class="badge badge-secondary">{{ s.category }}</span>
+      {% if is_done %}
+      <span class="badge badge-primary">✅ Completed</span>
+      {% else %}
+      <span class="badge badge-accent">Start →</span>
+      {% endif %}
+    </div>
+  </a>
+  {% endfor %}
+</div>
+{% else %}
+<div class="empty-state">
+  <div class="empty-state-icon">🗣️</div>
+  <h3>No Scenarios Available</h3>
+  <p>Speaking scenarios for your level are being prepared.</p>
+</div>
+{% endif %} {% endblock %}

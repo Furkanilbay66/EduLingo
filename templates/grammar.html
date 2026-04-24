@@ -1,0 +1,58 @@
+{% extends "base.html" %} {% block title %}Grammar{% endblock %} {% block
+content %}
+<div class="section-header">
+  <div>
+    <h1 class="section-title">📖 Grammar Lessons</h1>
+    <p class="section-subtitle">
+      Level {{ current_user.level }} — Master the rules of English
+    </p>
+  </div>
+</div>
+
+{% if lessons %}
+<div class="grid-2">
+  {% for lesson in lessons %} {% set is_completed = lesson.id in progress and
+  progress[lesson.id].completed %}
+  <a
+    href="{{ url_for('grammar_lesson', lesson_id=lesson.id) }}"
+    class="card"
+    style="text-decoration: none; color: var(--text)"
+  >
+    <div class="card-header">
+      <span class="card-icon">
+        {% if is_completed %}✅{% else %}📘{% endif %}
+      </span>
+      <div>
+        <div class="card-title">{{ lesson.title }}</div>
+        <div class="card-subtitle">
+          Lesson {{ lesson.order_num }} {% if is_completed %} · Score: {{
+          progress[lesson.id].score }}% {% endif %}
+        </div>
+      </div>
+    </div>
+
+    {% if is_completed %}
+    <div class="progress-bar" style="height: 8px">
+      <div
+        class="progress-fill"
+        style="width: {{ progress[lesson.id].score }}%"
+      ></div>
+    </div>
+    <div class="mt-1">
+      <span class="badge badge-primary">Completed</span>
+    </div>
+    {% else %}
+    <div class="mt-1">
+      <span class="badge badge-accent">Start Lesson →</span>
+    </div>
+    {% endif %}
+  </a>
+  {% endfor %}
+</div>
+{% else %}
+<div class="empty-state">
+  <div class="empty-state-icon">📖</div>
+  <h3>No Lessons Available</h3>
+  <p>Grammar lessons for your level are being prepared.</p>
+</div>
+{% endif %} {% endblock %}

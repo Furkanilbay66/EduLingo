@@ -1,0 +1,348 @@
+{% extends "base.html" %} {% block title %}Quiz{% endblock %} {% block content
+%}
+<div style="max-width: 700px; margin: 0 auto">
+  <div class="section-header">
+    <div>
+      <h1 class="section-title">📝 Quiz Time!</h1>
+      <p class="section-subtitle">
+        Test your English knowledge — Level {{ level }}
+      </p>
+    </div>
+  </div>
+
+  <!-- Start Screen -->
+  <div id="quizStart" class="card text-center">
+    <div style="font-size: 4rem; margin-bottom: 1rem">🧠</div>
+    <h2 style="font-weight: 800; margin-bottom: 0.5rem">
+      Ready to Test Yourself?
+    </h2>
+    <p style="color: var(--text-secondary); margin-bottom: 1.5rem">
+      You'll get 10 random questions: multiple choice, fill-in-the-blank, and
+      sentence correction. Earn <strong>10 XP</strong> for each correct answer!
+    </p>
+    <button class="btn btn-primary btn-lg" onclick="startQuiz()">
+      Start Quiz 🚀
+    </button>
+  </div>
+
+  <!-- Quiz Container -->
+  <div id="quizContainer" style="display: none">
+    <div class="placement-progress mb-2">
+      <div class="progress-bar">
+        <div class="progress-fill" id="quizProgress" style="width: 0%"></div>
+      </div>
+      <span class="progress-text" id="quizProgressText">0 / 0</span>
+    </div>
+
+    <div id="quizQuestions"></div>
+
+    <div class="flex justify-between mt-2">
+      <button
+        class="btn btn-ghost"
+        id="qPrevBtn"
+        onclick="prevQuestion()"
+        style="display: none"
+      >
+        ← Previous
+      </button>
+      <button
+        class="btn btn-primary"
+        id="qNextBtn"
+        onclick="nextQuestion()"
+        style="display: none"
+      >
+        Next →
+      </button>
+    </div>
+  </div>
+
+  <!-- Results -->
+  <div id="quizResults" style="display: none" class="card text-center">
+    <div
+      style="font-size: 3rem; margin-bottom: 0.5rem"
+      class="animate-bounce"
+      id="resultEmoji"
+    >
+      🎉
+    </div>
+    <h2 class="modal-title" id="resultTitle">Great Job!</h2>
+    <div class="results-circle" id="qResultCircle">
+      <div class="results-score" id="qScore">0/0</div>
+      <div class="results-label">correct</div>
+    </div>
+    <p
+      class="mt-2"
+      style="font-size: 1.1rem; font-weight: 700; color: var(--accent)"
+    >
+      +<span id="qXP">0</span> XP earned!
+    </p>
+    <div
+      class="flex gap-2 justify-between mt-3"
+      style="justify-content: center"
+    >
+      <button class="btn btn-outline" onclick="startQuiz()">Try Again</button>
+      <a href="{{ url_for('dashboard') }}" class="btn btn-primary">Dashboard</a>
+    </div>
+  </div>
+</div>
+{% endblock %} {% block scripts %}
+<script>
+  let quizzes = [];
+  let currentQ = 0;
+  let answers = {};
+  let answered = new Set();
+
+  function startQuiz() {
+    document.getElementById("quizStart").style.display = "none";
+    document.getElementById("quizResults").style.display = "none";
+    document.getElementById("quizContainer").style.display = "block";
+    answers = {};
+    answered = new Set();
+    currentQ = 0;
+
+    fetch("/quiz/get", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({}),
+    })
+      .then((r) => r.json())
+      .then((data) => {
+        quizzes = data.quizzes;
+        renderQuizzes();
+      });
+  }
+
+  function renderQuizzes() {
+    const container = document.getElementById("quizQuestions");
+    container.innerHTML = "";
+
+    quizzes.forEach((q, i) => {
+      let html = `<div class="question-card quiz-q" data-index="${i}" style="${i > 0 ? "display:none" : ""}">`;
+      html += `<div class="question-number">Question ${i + 1} of ${quizzes.length}</div>`;
+      html += `<div class="question-text">${q.question}</div>`;
+
+      if (q.quiz_type === "multiple_choice") {
+        html += '<div class="options-container">';
+        q.options.forEach((opt) => {
+          html += `<button type="button" class="quiz-option q-mc-option" data-qi="${i}" data-value="${escapeHtml(opt)}">${escapeHtml(opt)}</button>`;
+        });
+        html += "</div>";
+      } else if (q.quiz_type === "fill_blank") {
+        html += `<div class="form-group">
+                <input type="text" class="form-input q-fill-input" data-qi="${i}" placeholder="Type your answer..." autocomplete="off">
+                <button class="btn btn-secondary btn-sm mt-1 q-fill-check" data-qi="${i}">Check Answer</button>
+            </div>`;
+      } else if (q.quiz_type === "sentence_correction") {
+        html += `<div class="form-group">
+                <input type="text" class="form-input q-corr-input" data-qi="${i}" placeholder="Write the corrected sentence..." autocomplete="off">
+                <button class="btn btn-secondary btn-sm mt-1 q-corr-check" data-qi="${i}">Check Answer</button>
+            </div>`;
+      }
+
+      html += '<div class="feedback-box mt-2" style="display:none;"></div>';
+      html += "</div>";
+      container.innerHTML += html;
+    });
+
+    updateProgress();
+    bindQuizEvents();
+  }
+
+  function bindQuizEvents() {
+    // MC
+    document.querySelectorAll(".q-mc-option").forEach((btn) => {
+      btn.addEventListener("click", function () {
+        const qi = parseInt(this.dataset.qi);
+        if (answered.has(qi)) return;
+        const q = quizzes[qi];
+        const value = this.dataset.value;
+
+        this.closest(".options-container")
+          .querySelectorAll(".q-mc-option")
+          .forEach((b) => b.classList.remove("selected"));
+        this.classList.add("selected");
+        answered.add(qi);
+        answers[qi] = {
+          quiz_id: q.id,
+          user_answer: value,
+          is_correct: value === q.correct_answer,
+        };
+
+        const fb = this.closest(".quiz-q").querySelector(".feedback-box");
+        if (value === q.correct_answer) {
+          this.classList.add("correct");
+          fb.innerHTML =
+            '<div style="color:var(--primary);font-weight:700">✅ Correct!</div>';
+        } else {
+          this.classList.add("incorrect");
+          this.closest(".options-container")
+            .querySelectorAll(".q-mc-option")
+            .forEach((b) => {
+              if (b.dataset.value === q.correct_answer)
+                b.classList.add("correct");
+            });
+          fb.innerHTML = `<div style="color:var(--danger);font-weight:700">❌ The answer is: ${q.correct_answer}</div>`;
+        }
+        fb.style.display = "block";
+        showQNext();
+      });
+    });
+
+    // Fill blank
+    document.querySelectorAll(".q-fill-check").forEach((btn) => {
+      btn.addEventListener("click", function () {
+        const qi = parseInt(this.dataset.qi);
+        if (answered.has(qi)) return;
+        const q = quizzes[qi];
+        const input = document.querySelector(`.q-fill-input[data-qi="${qi}"]`);
+        const value = input.value.trim();
+        if (!value) return;
+
+        answered.add(qi);
+        const isCorrect =
+          value.toLowerCase() === q.correct_answer.toLowerCase();
+        answers[qi] = {
+          quiz_id: q.id,
+          user_answer: value,
+          is_correct: isCorrect,
+        };
+
+        const fb = this.closest(".quiz-q").querySelector(".feedback-box");
+        if (isCorrect) {
+          input.classList.add("correct");
+          fb.innerHTML =
+            '<div style="color:var(--primary);font-weight:700">✅ Correct!</div>';
+        } else {
+          input.classList.add("incorrect");
+          fb.innerHTML = `<div style="color:var(--danger);font-weight:700">❌ The answer is: ${q.correct_answer}</div>`;
+        }
+        fb.style.display = "block";
+        this.disabled = true;
+        input.disabled = true;
+        showQNext();
+      });
+    });
+
+    // Correction
+    document.querySelectorAll(".q-corr-check").forEach((btn) => {
+      btn.addEventListener("click", function () {
+        const qi = parseInt(this.dataset.qi);
+        if (answered.has(qi)) return;
+        const q = quizzes[qi];
+        const input = document.querySelector(`.q-corr-input[data-qi="${qi}"]`);
+        const value = input.value.trim();
+        if (!value) return;
+
+        answered.add(qi);
+        const isCorrect =
+          value.toLowerCase() === q.correct_answer.toLowerCase();
+        answers[qi] = {
+          quiz_id: q.id,
+          user_answer: value,
+          is_correct: isCorrect,
+        };
+
+        const fb = this.closest(".quiz-q").querySelector(".feedback-box");
+        if (isCorrect) {
+          input.classList.add("correct");
+          fb.innerHTML =
+            '<div style="color:var(--primary);font-weight:700">✅ Correct!</div>';
+        } else {
+          input.classList.add("incorrect");
+          fb.innerHTML = `<div style="color:var(--danger);font-weight:700">❌ The correct sentence is: ${q.correct_answer}</div>`;
+        }
+        fb.style.display = "block";
+        this.disabled = true;
+        input.disabled = true;
+        showQNext();
+      });
+    });
+  }
+
+  function showQNext() {
+    if (currentQ < quizzes.length - 1) {
+      document.getElementById("qNextBtn").style.display = "";
+    } else {
+      finishQuiz();
+    }
+  }
+
+  function nextQuestion() {
+    const qs = document.querySelectorAll(".quiz-q");
+    qs[currentQ].style.display = "none";
+    currentQ++;
+    qs[currentQ].style.display = "block";
+    document.getElementById("qNextBtn").style.display = "none";
+    document.getElementById("qPrevBtn").style.display =
+      currentQ > 0 ? "" : "none";
+    updateProgress();
+  }
+
+  function prevQuestion() {
+    const qs = document.querySelectorAll(".quiz-q");
+    qs[currentQ].style.display = "none";
+    currentQ--;
+    qs[currentQ].style.display = "block";
+    document.getElementById("qPrevBtn").style.display =
+      currentQ > 0 ? "" : "none";
+    document.getElementById("qNextBtn").style.display = answered.has(currentQ)
+      ? ""
+      : "none";
+    updateProgress();
+  }
+
+  function updateProgress() {
+    const pct = ((currentQ + 1) / quizzes.length) * 100;
+    document.getElementById("quizProgress").style.width = pct + "%";
+    document.getElementById("quizProgressText").textContent =
+      currentQ + 1 + " / " + quizzes.length;
+  }
+
+  function finishQuiz() {
+    const results = Object.values(answers);
+
+    fetch("/quiz/submit", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ results: results }),
+    })
+      .then((r) => r.json())
+      .then((data) => {
+        setTimeout(() => {
+          document.getElementById("quizContainer").style.display = "none";
+          const pct =
+            data.total > 0 ? Math.round((data.correct / data.total) * 100) : 0;
+
+          document.getElementById("qScore").textContent =
+            data.correct + "/" + data.total;
+          document.getElementById("qXP").textContent = data.xp_earned;
+
+          const circle = document.getElementById("qResultCircle");
+          if (pct >= 70) {
+            circle.className = "results-circle great";
+            document.getElementById("resultEmoji").textContent = "🎉";
+            document.getElementById("resultTitle").textContent = "Excellent!";
+          } else if (pct >= 40) {
+            circle.className = "results-circle good";
+            document.getElementById("resultEmoji").textContent = "👍";
+            document.getElementById("resultTitle").textContent = "Good Job!";
+          } else {
+            circle.className = "results-circle poor";
+            document.getElementById("resultEmoji").textContent = "💪";
+            document.getElementById("resultTitle").textContent =
+              "Keep Practicing!";
+          }
+
+          document.getElementById("quizResults").style.display = "block";
+          showXPPopup(data.xp_earned);
+        }, 800);
+      });
+  }
+
+  function escapeHtml(text) {
+    const div = document.createElement("div");
+    div.textContent = text;
+    return div.innerHTML;
+  }
+</script>
+{% endblock %}

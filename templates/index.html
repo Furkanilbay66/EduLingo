@@ -1,0 +1,78 @@
+{% extends "base.html" %} {% block title %}Welcome{% endblock %} {% block
+content %}
+<div class="landing">
+  <nav class="landing-nav">
+    <a href="{{ url_for('index') }}" class="nav-brand">
+      <span class="brand-icon">🦉</span>
+      <span class="brand-text">EduLingo</span>
+    </a>
+    <div class="flex gap-2">
+      <a href="{{ url_for('login') }}" class="btn btn-ghost">Log In</a>
+      <a href="{{ url_for('register') }}" class="btn btn-primary"
+        >Get Started</a
+      >
+    </div>
+  </nav>
+
+  <section class="landing-hero">
+    <div class="hero-content">
+      <div class="hero-text">
+        <h1>Learn English the <span>Smart Way</span></h1>
+        <p>
+          Interactive lessons, quizzes, writing practice, and speaking exercises
+          designed for high school and university students. Level up your
+          English from A1 to B2 with our gamified learning platform.
+        </p>
+        <div class="hero-buttons">
+          <a href="{{ url_for('register') }}" class="btn btn-primary btn-lg"
+            >Start Learning — Free</a
+          >
+          <a href="{{ url_for('login') }}" class="btn btn-outline btn-lg"
+            >I Have an Account</a
+          >
+        </div>
+      </div>
+      <div class="hero-visual">🦉</div>
+    </div>
+  </section>
+
+  <section class="features-grid">
+    <div class="feature-card card">
+      <div class="feature-icon">📚</div>
+      <h3>Vocabulary</h3>
+      <p>Learn new words daily with examples, images, and spaced repetition.</p>
+    </div>
+    <div class="feature-card card">
+      <div class="feature-icon">📖</div>
+      <h3>Grammar</h3>
+      <p>
+        Clear explanations with interactive quizzes to reinforce your learning.
+      </p>
+    </div>
+    <div class="feature-card card">
+      <div class="feature-icon">📝</div>
+      <h3>Quizzes</h3>
+      <p>
+        Multiple choice, fill-in-the-blank, and sentence correction exercises.
+      </p>
+    </div>
+    <div class="feature-card card">
+      <div class="feature-icon">✍️</div>
+      <h3>Writing</h3>
+      <p>Practice writing with instant grammar and style feedback.</p>
+    </div>
+    <div class="feature-card card">
+      <div class="feature-icon">🗣️</div>
+      <h3>Speaking</h3>
+      <p>Guided dialogue practice for real-world conversation scenarios.</p>
+    </div>
+    <div class="feature-card card">
+      <div class="feature-icon">🏆</div>
+      <h3>Gamification</h3>
+      <p>
+        Earn XP, maintain streaks, unlock badges, and climb the leaderboard.
+      </p>
+    </div>
+  </section>
+</div>
+{% endblock %}

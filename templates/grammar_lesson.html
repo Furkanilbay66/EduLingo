@@ -1,0 +1,307 @@
+{% extends "base.html" %} {% block title %}{{ lesson.title }}{% endblock %} {%
+block content %}
+<div style="max-width: 800px; margin: 0 auto">
+  <a href="{{ url_for('grammar') }}" class="btn btn-ghost mb-2"
+    >← Back to Lessons</a
+  >
+
+  <div class="section-header">
+    <div>
+      <h1 class="section-title">{{ lesson.title }}</h1>
+      <p class="section-subtitle">
+        Level {{ lesson.level }} · Lesson {{ lesson.order_num }}
+      </p>
+    </div>
+  </div>
+
+  <!-- Lesson Content -->
+  <div class="lesson-content">
+    {{ lesson.explanation|safe }}
+
+    <div class="lesson-examples">
+      <h3 style="font-weight: 800; margin-bottom: 0.75rem">📝 Examples</h3>
+      {% for ex in lesson.examples.split('|') %}
+      <div class="lesson-example">{{ ex|safe }}</div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Quiz Section -->
+  {% if quizzes %}
+  <div class="card" id="quizSection">
+    <h2 style="font-weight: 800; margin-bottom: 1rem">🧪 Practice Quiz</h2>
+    <p class="mb-2" style="color: var(--text-secondary); font-weight: 600">
+      Test your understanding with these questions.
+    </p>
+
+    <div id="lessonQuiz">
+      {% for q in quizzes %}
+      <div
+        class="question-card lesson-quiz-q"
+        data-index="{{ loop.index0 }}"
+        data-id="{{ q.id }}"
+        data-type="{{ q.quiz_type }}"
+        data-correct="{{ q.correct_answer }}"
+        style="{% if loop.index0 > 0 %}display:none{% endif %}"
+      >
+        <div class="question-number">
+          Question {{ loop.index }} of {{ quizzes|length }}
+        </div>
+        <div class="question-text">{{ q.question }}</div>
+
+        {% if q.quiz_type == 'multiple_choice' %}
+        <div class="options-container">
+          {% for opt in q.options|tojson|fromjson %}
+          <button
+            type="button"
+            class="quiz-option mc-option"
+            data-value="{{ opt }}"
+          >
+            {{ opt }}
+          </button>
+          {% endfor %}
+        </div>
+
+        {% elif q.quiz_type == 'fill_blank' %}
+        <div class="form-group">
+          <input
+            type="text"
+            class="form-input fill-input"
+            placeholder="Type your answer..."
+            autocomplete="off"
+          />
+          <button class="btn btn-secondary btn-sm mt-1 check-fill-btn">
+            Check Answer
+          </button>
+        </div>
+
+        {% elif q.quiz_type == 'sentence_correction' %}
+        <div class="form-group">
+          <input
+            type="text"
+            class="form-input correction-input"
+            placeholder="Write the corrected sentence..."
+            autocomplete="off"
+          />
+          <button class="btn btn-secondary btn-sm mt-1 check-correction-btn">
+            Check Answer
+          </button>
+        </div>
+        {% endif %}
+
+        <div class="feedback-box mt-2" style="display: none"></div>
+      </div>
+      {% endfor %}
+    </div>
+
+    <div class="flex justify-between mt-2">
+      <button
+        class="btn btn-ghost"
+        id="prevQuizBtn"
+        onclick="prevLessonQuiz()"
+        style="display: none"
+      >
+        ← Previous
+      </button>
+      <button
+        class="btn btn-primary"
+        id="nextQuizBtn"
+        onclick="nextLessonQuiz()"
+        style="display: none"
+      >
+        Next →
+      </button>
+    </div>
+
+    <div id="lessonQuizResult" style="display: none" class="text-center mt-3">
+      <div class="results-circle great" id="lessonResultCircle">
+        <div class="results-score" id="lessonScore">0</div>
+        <div class="results-label">correct</div>
+      </div>
+      <p class="mt-2" style="font-weight: 700">
+        <span id="lessonXP">0</span> XP earned!
+      </p>
+      <a href="{{ url_for('grammar') }}" class="btn btn-primary mt-2"
+        >Back to Lessons</a
+      >
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %} {% block scripts %}
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const questions = document.querySelectorAll(".lesson-quiz-q");
+    const total = questions.length;
+    let currentIdx = 0;
+    let score = 0;
+    let answered = new Set();
+
+    function showNav() {
+      document.getElementById("prevQuizBtn").style.display =
+        currentIdx > 0 ? "" : "none";
+    }
+
+    // Multiple choice
+    document.querySelectorAll(".mc-option").forEach((btn) => {
+      btn.addEventListener("click", function () {
+        const qDiv = this.closest(".lesson-quiz-q");
+        const idx = parseInt(qDiv.dataset.index);
+        if (answered.has(idx)) return;
+
+        const correct = qDiv.dataset.correct;
+        const value = this.dataset.value;
+
+        qDiv
+          .querySelectorAll(".mc-option")
+          .forEach((b) => b.classList.remove("selected"));
+        this.classList.add("selected");
+
+        answered.add(idx);
+        const fb = qDiv.querySelector(".feedback-box");
+
+        if (value === correct) {
+          this.classList.add("correct");
+          score++;
+          fb.innerHTML =
+            '<div style="color: var(--primary); font-weight: 700;">✅ Correct!</div>';
+        } else {
+          this.classList.add("incorrect");
+          qDiv.querySelectorAll(".mc-option").forEach((b) => {
+            if (b.dataset.value === correct) b.classList.add("correct");
+          });
+          fb.innerHTML =
+            '<div style="color: var(--danger); font-weight: 700;">❌ Incorrect. The answer is: ' +
+            correct +
+            "</div>";
+        }
+        fb.style.display = "block";
+        showNextBtn();
+      });
+    });
+
+    // Fill in the blank
+    document.querySelectorAll(".check-fill-btn").forEach((btn) => {
+      btn.addEventListener("click", function () {
+        const qDiv = this.closest(".lesson-quiz-q");
+        const idx = parseInt(qDiv.dataset.index);
+        if (answered.has(idx)) return;
+
+        const correct = qDiv.dataset.correct.toLowerCase().trim();
+        const input = qDiv.querySelector(".fill-input");
+        const value = input.value.toLowerCase().trim();
+        answered.add(idx);
+        const fb = qDiv.querySelector(".feedback-box");
+
+        if (value === correct) {
+          input.classList.add("correct");
+          score++;
+          fb.innerHTML =
+            '<div style="color: var(--primary); font-weight: 700;">✅ Correct!</div>';
+        } else {
+          input.classList.add("incorrect");
+          fb.innerHTML =
+            '<div style="color: var(--danger); font-weight: 700;">❌ Incorrect. The answer is: ' +
+            qDiv.dataset.correct +
+            "</div>";
+        }
+        fb.style.display = "block";
+        this.disabled = true;
+        input.disabled = true;
+        showNextBtn();
+      });
+    });
+
+    // Sentence correction
+    document.querySelectorAll(".check-correction-btn").forEach((btn) => {
+      btn.addEventListener("click", function () {
+        const qDiv = this.closest(".lesson-quiz-q");
+        const idx = parseInt(qDiv.dataset.index);
+        if (answered.has(idx)) return;
+
+        const correct = qDiv.dataset.correct.toLowerCase().trim();
+        const input = qDiv.querySelector(".correction-input");
+        const value = input.value.toLowerCase().trim();
+        answered.add(idx);
+        const fb = qDiv.querySelector(".feedback-box");
+
+        if (value === correct) {
+          input.classList.add("correct");
+          score++;
+          fb.innerHTML =
+            '<div style="color: var(--primary); font-weight: 700;">✅ Correct!</div>';
+        } else {
+          input.classList.add("incorrect");
+          fb.innerHTML =
+            '<div style="color: var(--danger); font-weight: 700;">❌ The correct answer is: ' +
+            qDiv.dataset.correct +
+            "</div>";
+        }
+        fb.style.display = "block";
+        this.disabled = true;
+        input.disabled = true;
+        showNextBtn();
+      });
+    });
+
+    function showNextBtn() {
+      if (currentIdx < total - 1) {
+        document.getElementById("nextQuizBtn").style.display = "";
+      } else {
+        finishLessonQuiz();
+      }
+    }
+
+    window.nextLessonQuiz = function () {
+      questions[currentIdx].style.display = "none";
+      currentIdx++;
+      questions[currentIdx].style.display = "block";
+      document.getElementById("nextQuizBtn").style.display = "none";
+      showNav();
+    };
+
+    window.prevLessonQuiz = function () {
+      questions[currentIdx].style.display = "none";
+      currentIdx--;
+      questions[currentIdx].style.display = "block";
+      document.getElementById("nextQuizBtn").style.display = answered.has(
+        currentIdx,
+      )
+        ? ""
+        : "none";
+      showNav();
+    };
+
+    function finishLessonQuiz() {
+      const pct = total > 0 ? Math.round((score / total) * 100) : 0;
+
+      fetch('{{ url_for("complete_lesson", lesson_id=lesson.id) }}', {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ score: pct }),
+      })
+        .then((r) => r.json())
+        .then((data) => {
+          setTimeout(() => {
+            document.getElementById("lessonQuiz").style.display = "none";
+            document.getElementById("prevQuizBtn").style.display = "none";
+            document.getElementById("nextQuizBtn").style.display = "none";
+
+            const resultDiv = document.getElementById("lessonQuizResult");
+            document.getElementById("lessonScore").textContent =
+              score + "/" + total;
+            document.getElementById("lessonXP").textContent = data.xp_earned;
+
+            const circle = document.getElementById("lessonResultCircle");
+            if (pct >= 70) circle.className = "results-circle great";
+            else if (pct >= 40) circle.className = "results-circle good";
+            else circle.className = "results-circle poor";
+
+            resultDiv.style.display = "block";
+            showXPPopup(data.xp_earned);
+          }, 1000);
+        });
+    }
+  });
+</script>
+{% endblock %}

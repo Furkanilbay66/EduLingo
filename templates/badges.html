@@ -1,0 +1,60 @@
+{% extends "base.html" %} {% block title %}Badges{% endblock %} {% block content
+%}
+<div style="max-width: 800px; margin: 0 auto">
+  <div class="section-header">
+    <div>
+      <h1 class="section-title">🏅 Badges</h1>
+      <p class="section-subtitle">
+        Collect badges as you learn — {{ earned_ids|length }} of {{
+        all_badges|length }} earned
+      </p>
+    </div>
+  </div>
+
+  <!-- Progress -->
+  <div class="card mb-3">
+    <div class="flex items-center justify-between mb-1">
+      <span style="font-weight: 700">Collection Progress</span>
+      <span class="badge badge-accent"
+        >{{ earned_ids|length }} / {{ all_badges|length }}</span
+      >
+    </div>
+    <div class="progress-bar">
+      {% set pct = (earned_ids|length / all_badges|length * 100) if
+      all_badges|length > 0 else 0 %}
+      <div class="progress-fill" style="width: {{ pct }}%"></div>
+    </div>
+  </div>
+
+  <!-- Earned Badges -->
+  {% set earned = [] %} {% set locked = [] %} {% for b in all_badges %} {% if
+  b.id in earned_ids %} {% if earned.append(b) %}{% endif %} {% else %} {% if
+  locked.append(b) %}{% endif %} {% endif %} {% endfor %} {% if earned %}
+  <h2 style="font-weight: 800; margin-bottom: 1rem">✨ Earned</h2>
+  <div class="badges-grid mb-3">
+    {% for b in earned %}
+    <div class="badge-card earned">
+      <div class="badge-icon">{{ b.icon }}</div>
+      <div class="badge-name">{{ b.name }}</div>
+      <div class="badge-desc">{{ b.description }}</div>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %} {% if locked %}
+  <h2
+    style="font-weight: 800; margin-bottom: 1rem; color: var(--text-secondary)"
+  >
+    🔒 Locked
+  </h2>
+  <div class="badges-grid">
+    {% for b in locked %}
+    <div class="badge-card locked">
+      <div class="badge-icon">{{ b.icon }}</div>
+      <div class="badge-name">{{ b.name }}</div>
+      <div class="badge-desc">{{ b.description }}</div>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,239 @@
+{% extends "base.html" %} {% block title %}Vocabulary{% endblock %} {% block
+content %}
+<div class="section-header">
+  <div>
+    <h1 class="section-title">📚 Vocabulary</h1>
+    <p class="section-subtitle">
+      Learn new words and expand your English skills
+    </p>
+  </div>
+</div>
+
+<!-- Controls Bar -->
+<div class="vocab-controls">
+  <div class="level-selector">
+    <span
+      style="font-weight: 700; color: var(--text-secondary); font-size: 0.85rem"
+      >Level:</span
+    >
+    <button
+      class="level-btn {% if selected_level == 'A1' %}active{% endif %}"
+      onclick="changeVocabLevel('A1')"
+    >
+      A1
+    </button>
+    <button
+      class="level-btn {% if selected_level == 'A2' %}active{% endif %}"
+      onclick="changeVocabLevel('A2')"
+    >
+      A2
+    </button>
+    <button
+      class="level-btn {% if selected_level == 'B1' %}active{% endif %}"
+      onclick="changeVocabLevel('B1')"
+    >
+      B1
+    </button>
+    <button
+      class="level-btn {% if selected_level == 'B2' %}active{% endif %}"
+      onclick="changeVocabLevel('B2')"
+    >
+      B2
+    </button>
+  </div>
+  <div class="mode-toggle">
+    <span class="toggle-label">Çeviri</span>
+    <div
+      class="toggle-switch active"
+      id="translationToggle"
+      onclick="toggleTranslation()"
+    ></div>
+    <span class="mode-text" id="modeText">Açık</span>
+  </div>
+</div>
+
+<!-- Tabs -->
+<div class="tabs">
+  <button class="tab active" data-tab="daily">🆕 Daily Words</button>
+  <button class="tab" data-tab="all">📋 All Words</button>
+  <button class="tab" data-tab="favorites">⭐ Favorites</button>
+</div>
+
+<!-- Daily Words Tab -->
+<div class="tab-content active" id="tab-daily">
+  {% if words %}
+  <p class="mb-2" style="color: var(--text-secondary); font-weight: 600">
+    Here are today's words to learn. Tap "Mark as Learned" when you're ready!
+  </p>
+  <div class="grid-3" id="dailyWords">
+    {% for word in words %}
+    <div class="word-card" id="word-{{ word.id }}">
+      <button
+        class="favorite-btn"
+        onclick="toggleFavorite({{ word.id }}, this)"
+        title="Add to favorites"
+      >
+        {% if word.id in fav_ids %}❤️{% else %}🤍{% endif %}
+      </button>
+
+      {% if word.image_url %}
+      <img
+        src="{{ word.image_url }}"
+        alt="{{ word.word }}"
+        class="word-image"
+        onerror="this.style.display = 'none'"
+      />
+      {% endif %}
+
+      <div class="word-text">{{ word.word }}</div>
+      {% if word.translation %}
+      <div class="word-translation">
+        <span class="tr-flag">🇹🇷</span> {{ word.translation }}
+      </div>
+      {% endif %}
+      <div class="word-meaning">{{ word.meaning }}</div>
+      <div class="word-example">"{{ word.example_sentence }}"</div>
+      {% if word.example_translation %}
+      <div class="word-example-translation">
+        🇹🇷 {{ word.example_translation }}
+      </div>
+      {% endif %}
+
+      <div class="flex items-center gap-1 mt-1">
+        <span class="badge badge-secondary">{{ word.category }}</span>
+      </div>
+
+      <div class="word-actions mt-2">
+        <button
+          class="btn btn-primary btn-sm btn-block learn-btn"
+          onclick="markLearned({{ word.id }}, this)"
+        >
+          ✅ Mark as Learned
+        </button>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="empty-state">
+    <div class="empty-state-icon">🎉</div>
+    <h3>All caught up!</h3>
+    <p>You've learned all available words for your level. Great job!</p>
+  </div>
+  {% endif %}
+</div>
+
+<!-- All Words Tab -->
+<div class="tab-content" id="tab-all">
+  {% set categories = [] %} {% for word in all_words %} {% if word.category not
+  in categories %} {% if categories.append(word.category) %}{% endif %} {% endif
+  %} {% endfor %} {% for cat in categories %}
+  <h3 style="font-weight: 800; margin: 1.5rem 0 0.75rem">{{ cat }}</h3>
+  <div class="grid-4">
+    {% for word in all_words if word.category == cat %}
+    <div class="word-card" style="padding: 1rem">
+      <div class="word-text" style="font-size: 1rem">{{ word.word }}</div>
+      {% if word.translation %}
+      <div class="word-translation">
+        <span class="tr-flag">🇹🇷</span> {{ word.translation }}
+      </div>
+      {% endif %}
+      <div class="word-meaning" style="font-size: 0.8rem">
+        {{ word.meaning }}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% endfor %}
+</div>
+
+<!-- Favorites Tab -->
+<div class="tab-content" id="tab-favorites">
+  {% if favorites %}
+  <div class="grid-3">
+    {% for word in favorites %}
+    <div class="word-card">
+      <button
+        class="favorite-btn"
+        onclick="toggleFavorite({{ word.id }}, this)"
+      >
+        ❤️
+      </button>
+      <div class="word-text">{{ word.word }}</div>
+      {% if word.translation %}
+      <div class="word-translation">
+        <span class="tr-flag">🇹🇷</span> {{ word.translation }}
+      </div>
+      {% endif %}
+      <div class="word-meaning">{{ word.meaning }}</div>
+      <div class="word-example">"{{ word.example_sentence }}"</div>
+      {% if word.example_translation %}
+      <div class="word-example-translation">
+        🇹🇷 {{ word.example_translation }}
+      </div>
+      {% endif %}
+      <span class="badge badge-secondary">{{ word.category }}</span>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="empty-state">
+    <div class="empty-state-icon">⭐</div>
+    <h3>No Favorites Yet</h3>
+    <p>Tap the heart icon on any word to save it here.</p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %} {% block scripts %}
+<script>
+  let translationOpen = true;
+
+  function changeVocabLevel(level) {
+    window.location.href = `/vocabulary?level=${level}`;
+  }
+
+  function toggleTranslation() {
+    translationOpen = !translationOpen;
+    const toggle = document.getElementById("translationToggle");
+    const modeText = document.getElementById("modeText");
+    const mainContent = document.querySelector(".main-content");
+
+    if (translationOpen) {
+      toggle.classList.add("active");
+      modeText.textContent = "Açık";
+      mainContent.classList.remove("translation-hidden");
+    } else {
+      toggle.classList.remove("active");
+      modeText.textContent = "Kapalı";
+      mainContent.classList.add("translation-hidden");
+    }
+  }
+
+  function markLearned(vocabId, btn) {
+    btn.disabled = true;
+    btn.innerHTML = "⏳ Saving...";
+
+    fetch(`/vocabulary/learn/${vocabId}`, { method: "POST" })
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.success) {
+          btn.innerHTML = "✅ Learned!";
+          btn.classList.remove("btn-primary");
+          btn.classList.add("btn-ghost");
+          btn.style.color = "var(--primary)";
+          showXPPopup(data.xp_earned);
+        }
+      });
+  }
+
+  function toggleFavorite(vocabId, btn) {
+    fetch(`/vocabulary/favorite/${vocabId}`, { method: "POST" })
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.success) {
+          btn.textContent = btn.textContent.trim() === "🤍" ? "❤️" : "🤍";
+        }
+      });
+  }
+</script>
+{% endblock %}
