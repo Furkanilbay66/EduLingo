@@ -1,5 +1,6 @@
 import sqlite3
 import os
+import json
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, timedelta
 
@@ -410,7 +411,16 @@ def get_quizzes_by_level(level, limit=10):
         (level, limit)
     ).fetchall()
     conn.close()
-    return [dict(q) for q in quizzes]
+    parsed = []
+    for quiz in quizzes:
+        q = dict(quiz)
+        if q.get('options'):
+            try:
+                q['options'] = json.loads(q['options'])
+            except (json.JSONDecodeError, TypeError):
+                q['options'] = []
+        parsed.append(q)
+    return parsed
 
 
 def get_quizzes_by_lesson(lesson_id):
@@ -420,7 +430,16 @@ def get_quizzes_by_lesson(lesson_id):
         (lesson_id,)
     ).fetchall()
     conn.close()
-    return [dict(q) for q in quizzes]
+    parsed = []
+    for quiz in quizzes:
+        q = dict(quiz)
+        if q.get('options'):
+            try:
+                q['options'] = json.loads(q['options'])
+            except (json.JSONDecodeError, TypeError):
+                q['options'] = []
+        parsed.append(q)
+    return parsed
 
 
 def save_quiz_result(user_id, quiz_id, user_answer, is_correct):
@@ -586,7 +605,16 @@ def get_placement_questions():
     conn = get_db()
     questions = conn.execute('SELECT * FROM placement_questions ORDER BY difficulty, id').fetchall()
     conn.close()
-    return [dict(q) for q in questions]
+    parsed = []
+    for question in questions:
+        q = dict(question)
+        if q.get('options'):
+            try:
+                q['options'] = json.loads(q['options'])
+            except (json.JSONDecodeError, TypeError):
+                q['options'] = []
+        parsed.append(q)
+    return parsed
 
 
 def calculate_level(score, total):

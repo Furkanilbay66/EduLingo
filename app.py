@@ -266,7 +266,7 @@ def get_quiz():
     quizzes = get_quizzes_by_level(level, 10)
 
     for q in quizzes:
-        if q['options']:
+        if isinstance(q.get('options'), str):
             q['options'] = json.loads(q['options'])
 
     return jsonify({'quizzes': quizzes})

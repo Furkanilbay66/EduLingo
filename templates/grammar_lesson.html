@@ -51,7 +51,7 @@ block content %}
 
         {% if q.quiz_type == 'multiple_choice' %}
         <div class="options-container">
-          {% for opt in q.options|tojson|fromjson %}
+          {% for opt in q.options %}
           <button
             type="button"
             class="quiz-option mc-option"

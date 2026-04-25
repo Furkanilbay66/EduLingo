@@ -29,7 +29,7 @@ content %}
       </div>
       <div class="question-text">{{ q.question }}</div>
       <div class="options-container">
-        {% for opt in q.options|tojson|fromjson if q.options %}
+        {% for opt in q.options if q.options %}
         <button
           type="button"
           class="quiz-option placement-option"
